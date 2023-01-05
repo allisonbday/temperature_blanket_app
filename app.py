@@ -6,6 +6,7 @@ import datetime
 
 import plotly.express as px
 from get_weather_json import get_weather_json
+from get_locations_json import get_location_json
 from draw import draw_lines
 
 # FUNCTIONS -------------------------------------------------------------------
@@ -52,6 +53,24 @@ def get_daily(raw_response, temp_unit):
     return daily_df
 
 
+@st.cache(suppress_st_warning=True)
+def get_location(town):
+    raw_locations = get_location_json(town)
+    return raw_locations
+
+
+def create_search_column(row):
+    cols = sorted(
+        ["name"]
+        + [col for col in row.keys() if col.startswith("admin") and "_" not in col],
+        reverse=True,
+    ) + ["country"]
+
+    new_list = ", ".join([row[x] for x in cols if not pd.isna(row[x])])
+
+    return new_list
+
+
 # PAGE SET UP -----------------------------------------------------------------
 st.set_page_config(page_icon="🧶", page_title="Temperature Blanket")  # , layout="wide")
 st.image(
@@ -66,8 +85,17 @@ st.title("Temperature Blanket Calculator")
 if "raw_response" not in st.session_state:
     st.session_state["raw_response"] = False
 
+if "raw_locations" not in st.session_state:
+    st.session_state["raw_locations"] = {}
+
 if "daily_df" not in st.session_state:
     st.session_state["daily_df"] = False
+
+if "lat" not in st.session_state:
+    st.session_state["lat"] = 67.55
+
+if "long" not in st.session_state:
+    st.session_state["long"] = 133.38
 
 if "palette" not in st.session_state:
     st.session_state["palette"] = []
@@ -77,8 +105,53 @@ if "palette" not in st.session_state:
 
 
 with st.sidebar:
-    lat = st.number_input("Latitude", min_value=-90.0, max_value=90.0, value=67.55)
-    long = st.number_input("Longitude", min_value=-180.0, max_value=180.0, value=133.38)
+
+    st.header("Search by Town")
+
+    town = st.text_input("Town Name", key="town")
+    if st.button("Find Town"):
+        results = get_location(st.session_state["town"])
+        st.session_state["raw_locations"] = results
+
+    raw_locations = st.session_state["raw_locations"]
+    if "results" not in raw_locations:
+        st.warning("Not Found")
+    else:
+        locations_df = pd.DataFrame.from_dict(raw_locations["results"])
+        locations_df["search"] = locations_df.apply(
+            lambda x: create_search_column(x),
+            axis=1,
+        )
+
+        selected_town = st.selectbox(
+            "Select Town",
+            options=locations_df["search"].to_list(),
+            label_visibility="collapsed",
+        )
+
+        latitude = locations_df.loc[locations_df["search"] == selected_town]
+
+        st.session_state.lat = latitude.loc[
+            latitude.search == selected_town, "latitude"
+        ].values[0]
+
+        st.session_state.long = latitude.loc[
+            latitude.search == selected_town, "longitude"
+        ].values[0]
+
+    st.header("Manual Input")
+    lat = st.number_input(
+        "Latitude",
+        min_value=-90.00000,
+        max_value=90.00000,
+        value=st.session_state["lat"],
+    )
+    long = st.number_input(
+        "Longitude",
+        min_value=-180.00000,
+        max_value=180.00000,
+        value=st.session_state.long,
+    )
 
     temp_unit = st.radio("Units", ("fahrenheit", "celsius"))
 
@@ -253,6 +326,10 @@ with col2:
     img = draw_lines(palette, filtered_df)
 
     st.image(img, caption="Temperature Blanket")
+
+
+fig = px.colors.sequential.swatches_continuous()
+fig
 
 
 # # st.dataframe(filtered_df)
