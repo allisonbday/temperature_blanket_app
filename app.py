@@ -7,7 +7,9 @@ import datetime
 import plotly.express as px
 from get_weather_json import get_weather_json
 from get_locations_json import get_location_json
+
 from draw import draw_lines
+from new_drawing import *
 
 # FUNCTIONS -------------------------------------------------------------------
 
@@ -304,6 +306,8 @@ with col1:
         chosen_palette, [n / (num_groups - 1) for n in range(num_groups)]
     )
     palette = [rgb_to_hex(i) for i in palette]
+    if reverse == "reverse":
+        palette.reverse()
     st.session_state["palette"] = palette
 
     gs = sorted(daily_df["group"].unique(), reverse=True)
@@ -315,10 +319,12 @@ with col1:
             color = st.color_picker(f"{key}", palette_dict[key])
             st.session_state["palette"][index] = color
 
+    # gs = sorted(daily_df["group"].unique(), reverse=True)
+    # # gs = [f"{x*10}° to  {x*10+9}°" if x >= 0 else f"{x*10+9}° to {x*10}°" for x in gs]
+    # palette_dict = dict(zip(gs, st.session_state["palette"]))
+
 with col2:
     palette = st.session_state["palette"]
-    if reverse == "reverse":
-        palette.reverse()
     filtered_df = daily_df.loc[
         (daily_df["time"] >= pd.to_datetime(start_date))
         & (daily_df["time"] <= pd.to_datetime(end_date))
@@ -328,8 +334,15 @@ with col2:
     st.image(img, caption="Temperature Blanket")
 
 
-fig = px.colors.sequential.swatches_continuous()
-fig
+st.write(palette_dict)  # todo: fix custom colors
+
+# width = 300
+# alt_line = alt_draw_lines(filtered_df, palette_dict, width, temp_unit)
+# st.altair_chart(alt_line, use_container_width=True)
+
+# mod = 10
+# alt_chev = alt_draw_chevron(filtered_df, palette_dict, width, mod, temp_unit)
+# st.altair_chart(alt_chev, use_container_width=True)
 
 
 # # st.dataframe(filtered_df)
