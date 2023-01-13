@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import re
@@ -5,12 +6,12 @@ import streamlit as st
 import datetime
 
 import plotly.express as px
-from get_weather_json import get_weather_json
-from get_locations_json import get_location_json
-from get_forecast_json import get_forecast_json
+from weather_api.get_weather_json import get_weather_json
+from weather_api.get_locations_json import get_location_json
+from weather_api.get_forecast_json import get_forecast_json
 
-from draw import draw_lines
-from new_drawing import *
+from drawing_scripts.draw import draw_lines
+from drawing_scripts.new_drawing import *
 
 # FUNCTIONS -------------------------------------------------------------------
 
@@ -87,7 +88,7 @@ st.image(
     width=100,
 )
 st.title("Temperature Blanket Calculator")
-
+path = os.path.dirname(__file__)
 # SESSION STATES --------------------------------------------------------------
 
 # Initialization
@@ -345,17 +346,12 @@ with col1:
     st.session_state["palette"] = palette
 
     gs = sorted(daily_df["group"].unique(), reverse=True)
-    # gs = [f"{x*10}° to  {x*10+9}°" if x >= 0 else f"{x*10+9}° to {x*10}°" for x in gs]
     palette_dict = dict(zip(gs, st.session_state["palette"]))
 
     with st.expander("Customize Color Palette"):
         for index, key in enumerate(palette_dict):
             color = st.color_picker(f"{key}", palette_dict[key])
             st.session_state["palette"][index] = color
-
-    # gs = sorted(daily_df["group"].unique(), reverse=True)
-    # # gs = [f"{x*10}° to  {x*10+9}°" if x >= 0 else f"{x*10+9}° to {x*10}°" for x in gs]
-    # palette_dict = dict(zip(gs, st.session_state["palette"]))
 
 with col2:
     palette = st.session_state["palette"]
@@ -370,43 +366,6 @@ with col2:
 
 st.write(palette_dict)  # todo: fix custom colors
 
-# width = 300
-# alt_line = alt_draw_lines(filtered_df, palette_dict, width, temp_unit)
-# st.altair_chart(alt_line, use_container_width=True)
-
-# mod = 10
-# alt_chev = alt_draw_chevron(filtered_df, palette_dict, width, mod, temp_unit)
-# st.altair_chart(alt_chev, use_container_width=True)
-
-
-# # st.dataframe(filtered_df)
-
-# fig_df = daily_df.sort_values("group", ascending=False)
-# fig_df["hex"] = fig_df["group"].map(palette_dict)
-# fig_df["group"] = fig_df["group"].astype(str)
-
-# fig_df
-# palette_dict
-
-# fig = px.histogram(
-#     fig_df,
-#     # x=temp_unit,
-#     x="group",
-#     color="group",
-#     color_discrete_sequence=palette,
-# )
-# st.plotly_chart(fig)
-
-# fig = px.scatter(
-#     fig_df, x="time", y=temp_unit, color="group", color_discrete_sequence=fig_df["hex"]
-# )
-
-
-# st.plotly_chart(fig)
-
-# # fig_df["month"] = fig_df["time"].dt.month
-# # fig = px.density_heatmap(fig_df, x="month", y=temp_unit)
-# # st.plotly_chart(fig)
 
 info_text = """
 UPCOMING FEATURES: 
