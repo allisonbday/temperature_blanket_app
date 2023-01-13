@@ -42,6 +42,7 @@ def get_forecast(lat, long):
 
 @st.cache
 def get_daily(raw_response, temp_unit):
+    # todo: only keep full days
     hourly_df = pd.DataFrame.from_dict(raw_response["hourly"])
     hourly_df["time"] = (
         pd.to_datetime(hourly_df["time"])
