@@ -10,8 +10,8 @@ import json
 #%%
 def get_weather_json(lat, long, temp_unit):
     url = "https://archive-api.open-meteo.com/v1/archive?latitude={0}&longitude={1}&start_date=1970-01-02&end_date={2}&hourly=temperature_2m&temperature_unit={3}".format(
-        lat, long, date.today(), temp_unit
-    )
+        lat, long, "2022-06-07", temp_unit
+    )  # replace {2} with date.today() if forecast_json changes start_date every day
     response = requests.get(url)
     return response.json()
 

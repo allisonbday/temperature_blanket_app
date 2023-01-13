@@ -7,6 +7,7 @@ import datetime
 import plotly.express as px
 from get_weather_json import get_weather_json
 from get_locations_json import get_location_json
+from get_forecast_json import get_forecast_json
 
 from draw import draw_lines
 from new_drawing import *
@@ -30,6 +31,12 @@ def read_json():
 def get_data(lat, long):
     raw_response = get_weather_json(lat, long, temp_unit)
     return raw_response
+
+
+@st.cache
+def get_forecast(lat, long):
+    forecast_response = get_forecast_json(lat, long, temp_unit)
+    return forecast_response
 
 
 @st.cache
@@ -87,11 +94,23 @@ st.title("Temperature Blanket Calculator")
 if "raw_response" not in st.session_state:
     st.session_state["raw_response"] = False
 
+if "raw_forecast" not in st.session_state:
+    st.session_state["raw_forecast"] = False
+
 if "raw_locations" not in st.session_state:
     st.session_state["raw_locations"] = {}
 
+if "historical_df" not in st.session_state:
+    st.session_state["historical_df"] = {}
+
+if "forecast_df" not in st.session_state:
+    st.session_state["forecast_df"] = {}
+
 if "daily_df" not in st.session_state:
     st.session_state["daily_df"] = False
+
+if "current_year" not in st.session_state:
+    st.session_state["current_year"] = False
 
 if "lat" not in st.session_state:
     st.session_state["lat"] = 67.55
@@ -158,26 +177,38 @@ with st.sidebar:
     temp_unit = st.radio("Units", ("fahrenheit", "celsius"))
 
     if st.button("Fetch New Data:"):
+        # todo: make more foolproof
+        # Historical data
         raw_response = get_data(lat, long)
         st.session_state["raw_response"] = raw_response
 
-        daily_df = get_daily(raw_response, temp_unit)
+        # Forecast
+        raw_forecast = get_forecast(st.session_state.lat, st.session_state.long)
+        st.session_state["raw_forecast"] = raw_forecast
+
+        # Create DFs
+        historical_df = get_daily(st.session_state.raw_response, temp_unit)
+        st.session_state["historical_df"] = historical_df
+
+        forecast_df = get_daily(st.session_state.raw_forecast, temp_unit)
+        st.session_state["forecast_df"] = forecast_df
+
+        daily_df = pd.concat([historical_df, forecast_df])
         st.session_state["daily_df"] = daily_df
+
+        current_year = daily_df["time"].max().year
+        st.session_state["current_year"] = current_year
 
     st.write(
         '<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>',
         unsafe_allow_html=True,
     )
 
-if not st.session_state["raw_response"]:
+if not st.session_state["raw_response"] or not st.session_state["raw_forecast"]:
     st.info("Please input your data in the sidebar, then hit 'Fetch New Data' button")
     st.stop()
 
-daily_df = st.session_state["daily_df"]
-
-# fig_df = daily_df.sort_values("group", ascending=False)
-# fig_df["group"] = fig_df["group"].astype(str)
-# fig_df = fig_df.loc[(fig_df["time"] >= "2018-01-01")]
+daily_df = st.session_state.daily_df
 
 
 def rgb_to_hex(rgb):
@@ -193,14 +224,16 @@ with st.expander("📆 Date Selection"):
     with st.container():
         sub1, sub2 = st.columns(2)
 
+        current_year = st.session_state.current_year
+
         with sub1:
 
             # todo: set default to this year
             st.number_input(
                 "Select Year",
                 min_value=1971,
-                max_value=2022,
-                value=2022,
+                max_value=current_year,
+                value=current_year,
                 step=1,
                 key="selected_year",
             )
@@ -224,6 +257,7 @@ with col1:
 
     chosen_palette = st.selectbox(
         "Choose a Color Palette",
+        # todo: store list somewhere else lol
         (
             "Aggrnyl",
             "Agsunset",
@@ -386,3 +420,8 @@ All suggestions welcome!
 """
 
 st.info(body=info_text, icon="🔜")
+
+
+# -----------------------------------------------------------------------------
+
+# time starts at 2022-06-08
