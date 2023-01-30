@@ -362,7 +362,9 @@ with col2:
     ]
     img = draw_lines(palette, filtered_df)
 
-    st.image(img, caption="Temperature Blanket")
+    st.image(
+        img, caption="Temperature Blanket"
+    )  # todo: if year not done, draw prospective year as gray?
 
 
 st.write(palette_dict)  # todo: fix custom colors
