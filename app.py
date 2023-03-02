@@ -387,3 +387,9 @@ st.info(body=info_text, icon="🔜")
 # -----------------------------------------------------------------------------
 
 # time starts at 2022-06-08
+
+fig_color_hist = px.histogram(daily_df, x="group")
+
+st.plotly_chart(fig_color_hist)
+
+st.dataframe(daily_df)
